@@ -8,7 +8,7 @@
 
 #import "ASValueTrackingSlider.h"
 
-#define ARROW_LENGTH 13
+#define ARROW_LENGTH 6
 
 @interface ASValuePopUpView : UIView
 - (void)setString:(NSAttributedString *)string;
@@ -106,7 +106,7 @@
     // Create rounded rect
     CGRect roundedRect = self.bounds;
     roundedRect.size.height -= ARROW_LENGTH;
-    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:4.0];
+    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:10.0];
     
     // Create arrow path
     UIBezierPath *arrowPath = [UIBezierPath bezierPath];
@@ -153,7 +153,7 @@
 
 #define MIN_POPUPVIEW_WIDTH 36.0
 #define MIN_POPUPVIEW_HEIGHT 27.0
-#define POPUPVIEW_WIDTH_INSET 10.0
+#define POPUPVIEW_WIDTH_INSET 30.0
 
 @implementation ASValueTrackingSlider
 {
