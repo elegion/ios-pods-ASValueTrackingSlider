@@ -333,15 +333,6 @@
     CGRect popUpRect = CGRectInset(thumbRect, (thumbW - _popUpViewWidth)/2, (thumbH -_popUpViewHeight)/2);
     popUpRect.origin.y = thumbRect.origin.y - _popUpViewHeight;
     
-    // determine if popUpRect extends beyond the frame of the UISlider
-    // if so adjust frame and set the center offset of the PopUpView's arrow
-    CGFloat minOffsetX = CGRectGetMinX(popUpRect);
-    CGFloat maxOffsetX = CGRectGetMaxX(popUpRect) - self.bounds.size.width;
-    
-    CGFloat offset = minOffsetX < 0.0 ? minOffsetX : (maxOffsetX > 0.0 ? maxOffsetX : 0.0);
-    popUpRect.origin.x -= offset;
-    [self.popUpView setArrowCenterOffset:offset];
-
     self.popUpView.frame = popUpRect;
     
     NSString *string = [_numberFormatter stringFromNumber:@(self.value)];
