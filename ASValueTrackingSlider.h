@@ -20,11 +20,20 @@
 // pass an array of  2 or more UIColors to animate the color change as the slider moves
 @property (strong, nonatomic) NSArray *popUpViewAnimatedColors;
 
+@property (nonatomic, assign) BOOL withAnimation;
+
+- (void)setThumbColorNormal:(UIColor *)thumbColorNormal
+      thumbColorHighlighted:(UIColor *)thumbColorHighlighted
+          thumbRadiusNormal:(CGFloat)thumbRadiusNormal
+     thumbRadiusHighlighted:(CGFloat)thumbRadiusHighlighted;
+
 // when setting max FractionDigits the min value is automatically set to the same value
 // this ensures that the PopUpView frame maintains a consistent width
 - (void)setMaxFractionDigitsDisplayed:(NSUInteger)maxDigits;
 
 // take full control of the format dispayed with a custom NSNumberFormatter
 - (void)setNumberFormatter:(NSNumberFormatter *)numberFormatter;
+
+
 
 @end

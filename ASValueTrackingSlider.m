@@ -106,7 +106,7 @@
     // Create rounded rect
     CGRect roundedRect = self.bounds;
     roundedRect.size.height -= ARROW_LENGTH;
-    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:10.0];
+    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:20.0];
     
     // Create arrow path
     UIBezierPath *arrowPath = [UIBezierPath bezierPath];
@@ -149,10 +149,17 @@
 @property (strong, nonatomic) ASValuePopUpView *popUpView;
 @property (readonly, nonatomic) CGRect thumbRect;
 @property (strong, nonatomic) NSMutableAttributedString *attributedString;
+@property (nonatomic, assign) BOOL highlightedPrevious;
+
+@property (nonatomic, strong) UIColor *thumbColorNormal;
+@property (nonatomic, strong) UIColor *thumbColorHighlighted;
+@property (nonatomic, assign) CGFloat thumbRadiusNormal;
+@property (nonatomic, assign) CGFloat thumbRadiusHighlighted;
+
 @end
 
 #define MIN_POPUPVIEW_WIDTH 36.0
-#define MIN_POPUPVIEW_HEIGHT 27.0
+#define MIN_POPUPVIEW_HEIGHT 40.0
 #define POPUPVIEW_WIDTH_INSET 30.0
 
 @implementation ASValueTrackingSlider
@@ -178,6 +185,197 @@
         [self setup];
     }
     return self;
+}
+
+#pragma mark - Additions
+
+static NSString * const kSliderTrack = @"sliderTrackImage";
+static NSString * const kSliderThumbName = @"sliderThumbName";
+
+
+static const CGFloat kTouchZonePadding = 10.0;
+
+#pragma mark Initialization
+
+- (void)awakeFromNib
+{
+    [self setMaxFractionDigitsDisplayed:0];
+    self.popUpViewColor = [UIColor colorWithRed:0.95 green:0.32 blue:0.21 alpha:1];
+    self.textColor = [UIColor whiteColor];
+    
+    [self setNumberFormatter:[[NSNumberFormatter alloc] init]];
+}
+
+- (void)setThumbColorNormal:(UIColor *)thumbColorNormal
+      thumbColorHighlighted:(UIColor *)thumbColorHighlighted
+          thumbRadiusNormal:(CGFloat)thumbRadiusNormal
+     thumbRadiusHighlighted:(CGFloat)thumbRadiusHighlighted
+{
+    self.thumbColorNormal = thumbColorNormal;
+    self.thumbColorHighlighted = thumbColorHighlighted;
+    self.thumbRadiusNormal = thumbRadiusNormal;
+    self.thumbRadiusHighlighted = thumbRadiusHighlighted;
+    
+    [self setThumbImage:[self imageCircleWithRadius:thumbRadiusNormal color:thumbColorNormal]];
+}
+
+- (UIImage *)imageCircleWithRadius:(CGFloat)radius color:(UIColor *)color
+{
+    CGFloat diameter = radius * 2.0;
+    CGRect rect = CGRectMake(0.0, 0.0, diameter, diameter);
+    
+    CGFloat colorRed;
+    CGFloat colorGreen;
+    CGFloat colorBlue;
+    CGFloat colorAlpha;
+    [color getRed:&colorRed green:&colorGreen blue:&colorBlue alpha:&colorAlpha];
+    
+    UIGraphicsBeginImageContextWithOptions(rect.size, NO, 2.0);
+    
+    CGFloat lineWidth = 2.0;
+    CGRect borderRect = CGRectInset(rect, lineWidth * 0.5, lineWidth * 0.5);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextSetRGBFillColor(context, colorRed, colorGreen, colorBlue, colorAlpha);
+    CGContextFillEllipseInRect (context, borderRect);
+    CGContextFillPath(context);
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    
+    UIGraphicsEndImageContext();
+    
+    return image;
+}
+
+- (void)replaceViewLayer:(UIView *)view withCircleRadius:(CGFloat)radius color:(UIColor *)color
+{
+    view.layer.contents = nil;
+    view.layer.cornerRadius = radius;
+    view.layer.backgroundColor = color.CGColor;
+}
+
+- (void)setThumbImage:(UIImage *)thumbImage
+{
+    [self setThumbImage:thumbImage forState:UIControlStateNormal & UIControlStateHighlighted];
+}
+
+#pragma mark Touch Reaction
+
+- (void)setHighlighted:(BOOL)highlighted
+{
+    [super setHighlighted:highlighted];
+    
+    if (highlighted && !self.highlightedPrevious)
+    {
+        UIView *view = [self findThumbView];
+        [self replaceViewLayer:view withCircleRadius:self.thumbRadiusNormal color:self.thumbColorNormal];
+        view.layer.name = kSliderThumbName;
+        [self scaleUpView:view];
+    }
+    else if (!highlighted && self.highlightedPrevious)
+    {
+        [self scaleDownView:[self findThumbView]];
+    }
+    self.highlightedPrevious = highlighted;
+}
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event
+{
+    CGRect bounds = self.bounds;
+    bounds = CGRectInset(bounds, -kTouchZonePadding, -kTouchZonePadding);
+    return CGRectContainsPoint(bounds, point);
+}
+
+#pragma mark Animation
+
+- (UIView *)findThumbView
+{
+    CGSize currentImageSize = self.currentThumbImage.size;
+    
+    if (CGSizeEqualToSize(currentImageSize, CGSizeZero))
+    {
+        currentImageSize = CGSizeMake(31.0, 31.0);
+    }
+    UIView *thumbView = nil;
+    
+    for (UIView *view in self.subviews)
+    {
+        CGSize viewSize = view.bounds.size;
+        
+        if (CGSizeEqualToSize(currentImageSize, viewSize) || [view.layer.name isEqualToString:kSliderThumbName])
+        {
+            thumbView = view;
+        }
+    }
+    return thumbView;
+}
+
+- (void)scaleUpView:(UIView *)view
+{
+    CGFloat transformationScale = self.thumbRadiusHighlighted / self.thumbRadiusNormal;
+    
+    if (view && self.withAnimation)
+    {
+        [CATransaction begin];
+        
+        CGFloat animationDuration = 0.2;
+        
+        NSValue *fromValue = [view.layer animationForKey:@"transform"] ?
+        [view.layer.presentationLayer valueForKey:@"transform"] :
+        [NSValue valueWithCATransform3D:CATransform3DIdentity];
+        
+        CABasicAnimation *scaleAnimation = [CABasicAnimation animationWithKeyPath:@"transform"];
+        scaleAnimation.fromValue = fromValue;
+        scaleAnimation.toValue = [NSValue valueWithCATransform3D:CATransform3DMakeScale(transformationScale, transformationScale, 1.0)];
+        [scaleAnimation setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear]];
+        scaleAnimation.removedOnCompletion = NO;
+        scaleAnimation.fillMode = kCAFillModeForwards;
+        scaleAnimation.duration = animationDuration;
+        [view.layer addAnimation:scaleAnimation forKey:@"transform"];
+        
+        CABasicAnimation *colorAnimation = [CABasicAnimation animationWithKeyPath:@"backgroundColor"];
+        colorAnimation.fromValue = (id)self.thumbColorNormal.CGColor;
+        colorAnimation.toValue = (id)self.thumbColorHighlighted.CGColor;
+        colorAnimation.duration = animationDuration;
+        [view.layer addAnimation:colorAnimation forKey:@"backgroundColor"];
+        
+        [CATransaction commit];
+    }
+    else if (view)
+    {
+        view.layer.transform = CATransform3DMakeScale(transformationScale, transformationScale, 1.0);
+    }
+    view.layer.backgroundColor = self.thumbColorHighlighted.CGColor;
+}
+
+- (void)scaleDownView:(UIView *)view
+{
+    if (view && self.withAnimation)
+    {
+        [CATransaction begin];
+        
+        CGFloat animationDuration = 0.2;
+        
+        CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform"];
+        scaleAnim.fromValue = [view.layer.presentationLayer valueForKey:@"transform"];
+        scaleAnim.toValue = [NSValue valueWithCATransform3D:CATransform3DIdentity];
+        scaleAnim.duration = animationDuration;
+        scaleAnim.removedOnCompletion = NO;
+        scaleAnim.fillMode = kCAFillModeForwards;
+        [scaleAnim setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear]];
+        [view.layer addAnimation:scaleAnim forKey:@"transform"];
+        
+        CABasicAnimation *colorAnimation = [CABasicAnimation animationWithKeyPath:@"backgroundColor"];
+        colorAnimation.fromValue = (id)self.thumbColorHighlighted.CGColor;
+        colorAnimation.toValue = (id)self.thumbColorNormal.CGColor;
+        colorAnimation.duration = animationDuration;
+        [view.layer addAnimation:colorAnimation forKey:@"backgroundColor"];
+        
+        [CATransaction commit];
+    }
+    else if (view)
+    {
+        view.layer.transform = CATransform3DIdentity;
+    }
+    view.layer.backgroundColor = self.thumbColorNormal.CGColor;
 }
 
 #pragma mark - public methods
@@ -265,7 +463,7 @@
     [self setMaxFractionDigitsDisplayed:2];
     
     self.popUpView = [[ASValuePopUpView alloc] initWithFrame:CGRectZero];
-    self.popUpView.alpha = 0.0;
+    self.popUpView.alpha = self.withAnimation;
     [self addSubview:self.popUpView];
     
     self.attributedString = [[NSMutableAttributedString alloc] initWithString:@" " attributes:nil];
@@ -278,55 +476,61 @@
 
 - (void)showPopUp
 {
-    [CATransaction begin]; {
-        // if the transfrom animation hasn't run yet then set a default fromValue
-        NSValue *fromValue = [self.popUpView.layer animationForKey:@"transform"] ?
-        [self.popUpView.layer.presentationLayer valueForKey:@"transform"] :
-        [NSValue valueWithCATransform3D:CATransform3DMakeScale(0.5, 0.5, 1)];
-        
-        CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform"];
-        scaleAnim.fromValue = fromValue;
-        scaleAnim.toValue = [NSValue valueWithCATransform3D:CATransform3DIdentity];
-        [scaleAnim setTimingFunction:[CAMediaTimingFunction functionWithControlPoints:0.8 :2.5 :0.35 :0.5]];
-        scaleAnim.removedOnCompletion = NO;
-        scaleAnim.fillMode = kCAFillModeForwards;
-        scaleAnim.duration = 0.4;
-        [self.popUpView.layer addAnimation:scaleAnim forKey:@"transform"];
-        
-        CABasicAnimation* fadeInAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
-        fadeInAnim.fromValue = [self.popUpView.layer.presentationLayer valueForKey:@"opacity"];
-        fadeInAnim.duration = 0.1;
-        fadeInAnim.toValue = @1.0;
-        [self.popUpView.layer addAnimation:fadeInAnim forKey:@"opacity"];
-        self.popUpView.layer.opacity = 1.0;
-        
-    } [CATransaction commit];
+    if (self.withAnimation)
+    {
+        [CATransaction begin]; {
+            // if the transfrom animation hasn't run yet then set a default fromValue
+            NSValue *fromValue = [self.popUpView.layer animationForKey:@"transform"] ?
+            [self.popUpView.layer.presentationLayer valueForKey:@"transform"] :
+            [NSValue valueWithCATransform3D:CATransform3DMakeScale(0.5, 0.5, 1)];
+            
+            CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform"];
+            scaleAnim.fromValue = fromValue;
+            scaleAnim.toValue = [NSValue valueWithCATransform3D:CATransform3DIdentity];
+            [scaleAnim setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear]];
+            scaleAnim.removedOnCompletion = NO;
+            scaleAnim.fillMode = kCAFillModeForwards;
+            scaleAnim.duration = 0.1;
+            [self.popUpView.layer addAnimation:scaleAnim forKey:@"transform"];
+            
+            CABasicAnimation* fadeInAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
+            fadeInAnim.fromValue = [self.popUpView.layer.presentationLayer valueForKey:@"opacity"];
+            fadeInAnim.duration = 0.1;
+            fadeInAnim.toValue = @1.0;
+            [self.popUpView.layer addAnimation:fadeInAnim forKey:@"opacity"];
+        } [CATransaction commit];
+    }
+    self.popUpView.layer.opacity = 1.0;
 }
 
 - (void)hidePopUp
 {
-    [CATransaction begin]; {
-        CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform"];
-        scaleAnim.fromValue = [self.popUpView.layer.presentationLayer valueForKey:@"transform"];
-        scaleAnim.toValue = [NSValue valueWithCATransform3D:CATransform3DMakeScale(0.5, 0.5, 1)];
-        scaleAnim.duration = 0.6;
-        scaleAnim.removedOnCompletion = NO;
-        scaleAnim.fillMode = kCAFillModeForwards;
-        [scaleAnim setTimingFunction:[CAMediaTimingFunction functionWithControlPoints:0.1 :-2 :0.3 :3]];
-        [self.popUpView.layer addAnimation:scaleAnim forKey:@"transform"];
-        
-        CABasicAnimation* fadeOutAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
-        fadeOutAnim.fromValue = [self.popUpView.layer.presentationLayer valueForKey:@"opacity"];
-        fadeOutAnim.toValue = @0.0;
-        fadeOutAnim.duration = 0.8;
-        [self.popUpView.layer addAnimation:fadeOutAnim forKey:@"opacity"];
-        self.popUpView.layer.opacity = 0.0;
-    } [CATransaction commit];
+    if (self.withAnimation)
+    {
+        [CATransaction begin]; {
+            CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform"];
+            scaleAnim.fromValue = [self.popUpView.layer.presentationLayer valueForKey:@"transform"];
+            scaleAnim.toValue = [NSValue valueWithCATransform3D:CATransform3DMakeScale(0.5, 0.5, 1)];
+            scaleAnim.duration = 0.1;
+            scaleAnim.removedOnCompletion = NO;
+            scaleAnim.fillMode = kCAFillModeForwards;
+            [scaleAnim setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear]];
+            [self.popUpView.layer addAnimation:scaleAnim forKey:@"transform"];
+            
+            CABasicAnimation* fadeOutAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
+            fadeOutAnim.fromValue = [self.popUpView.layer.presentationLayer valueForKey:@"opacity"];
+            fadeOutAnim.toValue = @0.0;
+            fadeOutAnim.duration = 0.1;
+            [self.popUpView.layer addAnimation:fadeOutAnim forKey:@"opacity"];
+        } [CATransaction commit];
+    }
+    self.popUpView.layer.opacity = 0.0;
 }
 
 - (void)positionAndUpdatePopUpView
 {
     CGRect thumbRect = self.thumbRect;
+    
     CGFloat thumbW = thumbRect.size.width;
     CGFloat thumbH = thumbRect.size.height;
 
@@ -356,9 +560,13 @@
 
 - (CGRect)thumbRect
 {
-    return [self thumbRectForBounds:self.bounds
-                          trackRect:[self trackRectForBounds:self.bounds]
-                              value:self.value];
+    CGRect thumbRect = [self thumbRectForBounds:self.bounds
+                                       trackRect:[self trackRectForBounds:self.bounds]
+                                           value:self.value];
+    
+    CGFloat radiusDelta = -fabs(self.thumbRadiusHighlighted - self.thumbRadiusNormal);
+    
+    return CGRectInset(thumbRect, radiusDelta, radiusDelta);
 }
 
 // returns the current offset of UISlider value in the range 0.0 – 1.0
