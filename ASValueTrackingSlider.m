@@ -106,7 +106,7 @@
     // Create rounded rect
     CGRect roundedRect = self.bounds;
     roundedRect.size.height -= ARROW_LENGTH;
-    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:20.0];
+    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:15.0];
     
     // Create arrow path
     UIBezierPath *arrowPath = [UIBezierPath bezierPath];
@@ -158,9 +158,9 @@
 
 @end
 
-#define MIN_POPUPVIEW_WIDTH 36.0
-#define MIN_POPUPVIEW_HEIGHT 40.0
-#define POPUPVIEW_WIDTH_INSET 30.0
+#define MIN_POPUPVIEW_WIDTH 26.0
+#define MIN_POPUPVIEW_HEIGHT 30.0
+#define POPUPVIEW_WIDTH_INSET 20.0
 
 @implementation ASValueTrackingSlider
 {

@@ -30,16 +30,15 @@
                thumbRadiusHighlighted:35.0];
     
     // customize slider 2
-    self.slider2.maximumValue = 255.0;
-    self.slider2.withAnimation = NO;
-    [self.slider2 setThumbColorNormal:[UIColor greenColor]
-                thumbColorHighlighted:[UIColor blackColor]
-                    thumbRadiusNormal:20.0
-               thumbRadiusHighlighted:60.0];
-    
+    self.slider2.minimumValue = 1990.0;
+    self.slider2.maximumValue = 2020.0;
+    self.slider2.withAnimation = YES;
+    [self.slider2 setThumbColorNormal:[UIColor blackColor]
+                thumbColorHighlighted:[UIColor colorWithRed:0.95 green:0.32 blue:0.21 alpha:1]
+                    thumbRadiusNormal:9.0
+               thumbRadiusHighlighted:33.0];
     [self.slider2 setMaxFractionDigitsDisplayed:0];
-    self.slider2.popUpViewAnimatedColors = @[[UIColor colorWithHue:0.55 saturation:0.0 brightness:0.6 alpha:1], [UIColor colorWithHue:0.55 saturation:1.0 brightness:0.8 alpha:1]];
-    self.slider2.font = [UIFont fontWithName:@"Menlo-Bold" size:22];
+    self.slider2.font = [UIFont fontWithName:@"ProximaNova-Bold" size:18];
 
     
     // customize slider 3
