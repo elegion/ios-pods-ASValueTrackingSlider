@@ -535,7 +535,8 @@ static const CGFloat kTouchZonePadding = 10.0;
     CGFloat thumbH = thumbRect.size.height;
 
     CGRect popUpRect = CGRectInset(thumbRect, (thumbW - _popUpViewWidth)/2, (thumbH -_popUpViewHeight)/2);
-    popUpRect.origin.y = thumbRect.origin.y - _popUpViewHeight;
+    const CGFloat popUpOffcet = 8.0;
+    popUpRect.origin.y = thumbRect.origin.y - _popUpViewHeight - popUpOffcet;
     
     self.popUpView.frame = popUpRect;
     
