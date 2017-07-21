@@ -103,21 +103,21 @@
 
 - (void)drawPath
 {
-    // Create rounded rect
-    CGRect roundedRect = self.bounds;
-    roundedRect.size.height -= ARROW_LENGTH;
-    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:15.0];
+    // Create rect
+    CGRect rect = self.bounds;
+    rect.size.height -= ARROW_LENGTH;
+    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRect:rect];
     
     // Create arrow path
     UIBezierPath *arrowPath = [UIBezierPath bezierPath];
     CGFloat arrowX = CGRectGetMidX(self.bounds) + _arrowCenterOffset;
     CGPoint p0 = CGPointMake(arrowX, CGRectGetMaxY(self.bounds));
     [arrowPath moveToPoint:p0];
-    [arrowPath addLineToPoint:CGPointMake((arrowX - 6.0), CGRectGetMaxY(roundedRect))];
-    [arrowPath addLineToPoint:CGPointMake((arrowX + 6.0), CGRectGetMaxY(roundedRect))];
+    [arrowPath addLineToPoint:CGPointMake((arrowX - 6.0), CGRectGetMaxY(rect))];
+    [arrowPath addLineToPoint:CGPointMake((arrowX + 6.0), CGRectGetMaxY(rect))];
     [arrowPath closePath];
     
-    // combine arrow path and rounded rect
+    // combine arrow path and rect
     [roundedRectPath appendPath:arrowPath];
 
     _backgroundLayer.path = roundedRectPath.CGPath;
