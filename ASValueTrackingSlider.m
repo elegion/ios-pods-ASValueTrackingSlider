@@ -103,21 +103,21 @@
 
 - (void)drawPath
 {
-    // Create rounded rect
-    CGRect roundedRect = self.bounds;
-    roundedRect.size.height -= ARROW_LENGTH;
-    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRoundedRect:roundedRect cornerRadius:15.0];
+    // Create rect
+    CGRect rect = self.bounds;
+    rect.size.height -= ARROW_LENGTH;
+    UIBezierPath *roundedRectPath = [UIBezierPath bezierPathWithRect:rect];
     
     // Create arrow path
     UIBezierPath *arrowPath = [UIBezierPath bezierPath];
     CGFloat arrowX = CGRectGetMidX(self.bounds) + _arrowCenterOffset;
     CGPoint p0 = CGPointMake(arrowX, CGRectGetMaxY(self.bounds));
     [arrowPath moveToPoint:p0];
-    [arrowPath addLineToPoint:CGPointMake((arrowX - 6.0), CGRectGetMaxY(roundedRect))];
-    [arrowPath addLineToPoint:CGPointMake((arrowX + 6.0), CGRectGetMaxY(roundedRect))];
+    [arrowPath addLineToPoint:CGPointMake((arrowX - 6.0), CGRectGetMaxY(rect))];
+    [arrowPath addLineToPoint:CGPointMake((arrowX + 6.0), CGRectGetMaxY(rect))];
     [arrowPath closePath];
     
-    // combine arrow path and rounded rect
+    // combine arrow path and rect
     [roundedRectPath appendPath:arrowPath];
 
     _backgroundLayer.path = roundedRectPath.CGPath;
@@ -199,6 +199,8 @@ static const CGFloat kTouchZonePadding = 10.0;
 
 - (void)awakeFromNib
 {
+    [super awakeFromNib];
+    
     [self setMaxFractionDigitsDisplayed:0];
     self.popUpViewColor = [UIColor colorWithRed:0.95 green:0.32 blue:0.21 alpha:1];
     self.textColor = [UIColor whiteColor];
@@ -538,6 +540,15 @@ static const CGFloat kTouchZonePadding = 10.0;
     const CGFloat popUpOffcet = 8.0;
     popUpRect.origin.y = thumbRect.origin.y - _popUpViewHeight - popUpOffcet;
     
+    // determine if popUpRect extends beyond the frame of the UISlider
+    // if so adjust frame and set the center offset of the PopUpView's arrow
+    CGFloat minOffsetX = CGRectGetMinX(popUpRect);
+    CGFloat maxOffsetX = CGRectGetMaxX(popUpRect) - self.bounds.size.width;
+    
+    CGFloat offset = minOffsetX < 0.0 ? minOffsetX : (maxOffsetX > 0.0 ? maxOffsetX : 0.0);
+    popUpRect.origin.x -= offset;
+    [self.popUpView setArrowCenterOffset:offset];
+
     self.popUpView.frame = popUpRect;
     
     NSString *string = [_numberFormatter stringFromNumber:@(self.value)];
